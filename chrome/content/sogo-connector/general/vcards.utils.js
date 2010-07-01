@@ -234,7 +234,7 @@ function CreateCardFromVCF(vcard, outParameters) {
 		}
 		else
 			parameters = {};
-
+		
 		var values = decodedValues(vcard[i]["values"], charset, encoding);
  		InsertCardData(card, tag, parameters, values, outParameters);
 	}
@@ -271,7 +271,10 @@ var _insertCardMethods = {
 		}
 		var knownType = false;
 		if (types.indexOf("FAX") > -1) {
-			card.faxNumber = values[0];
+			if (types.indexOf("WORK") > -1)	
+				card.faxNumber = values[0];
+			else if (card.faxNumber.length == 0)
+				card.faxNumber = values[0];
 			knownType = true;
 		} else if (types.indexOf("CELL") > -1) {
 			card.cellularNumber = values[0];
@@ -304,8 +307,8 @@ var _insertCardMethods = {
 			for (var i = 0; i < preTypes.length; i++)
 				types[i] = preTypes[i].toUpperCase();
 		if (types.indexOf("WORK") > -1) {
-			if (values[0])
-				card.workAddress2 = values[0];
+			if (values[1])
+				card.workAddress2 = values[1];
 			if (values[2])
 				card.workAddress = values[2];
 			if (values[3])
@@ -318,8 +321,8 @@ var _insertCardMethods = {
 				card.workCountry = values[6];
 		}
 		else {
-			if (values[0])
-				card.homeAddress2 = values[0];
+			if (values[1])
+				card.homeAddress2 = values[1];
 			if (values[2]) 
 				card.homeAddress = values[2];
 			if (values[3])
@@ -343,7 +346,7 @@ var _insertCardMethods = {
 		if (preTypes)
 			for (var i = 0; i < preTypes.length; i++)
 				types[i] = preTypes[i].toUpperCase();
-		if (types.indexOf("PREF") > -1) {
+		if (types.indexOf("PREF") > -1 || types.indexOf("WORK") > -1) {
 			if (card.primaryEmail.length)
 				card.secondEmail = card.primaryEmail;
 			card.primaryEmail = values[0];
@@ -480,11 +483,11 @@ function card2vcard(oldCard) {
 	if (card.nickName != "") 
 		vCard += "NICKNAME:"+card.nickName+"\r\n";
 
-	data = "ADR;TYPE=work:" + card.workAddress2 + ";;"+card.workAddress+";"+card.workCity+";"+card.workState+";"+card.workZipCode+";"+card.workCountry+"\r\n";
+	data = "ADR;TYPE=work:;" + card.workAddress2 + ";"+card.workAddress+";"+card.workCity+";"+card.workState+";"+card.workZipCode+";"+card.workCountry+"\r\n";
 	if (data != "DR;TYPE=WORK,POSTAL:;;;;;;\r\n") 
 		vCard += data;   
 
-	data = "ADR;TYPE=home:" + card.homeAddress2 + ";;"+card.homeAddress+";"+card.homeCity+";"+card.homeState+";"+card.homeZipCode+";"+card.homeCountry+"\r\n";
+	data = "ADR;TYPE=home:;" + card.homeAddress2 + ";"+card.homeAddress+";"+card.homeCity+";"+card.homeState+";"+card.homeZipCode+";"+card.homeCountry+"\r\n";
 	if (data != "ADR;TYPE=HOME,POSTAL::;;;;;;\r\n") 
 		vCard += data;
 
