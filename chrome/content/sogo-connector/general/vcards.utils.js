@@ -290,11 +290,9 @@ var _insertCardMethods = {
         }
         var knownType = false;
         if (types.indexOf("FAX") > -1) {
-            if (types.indexOf("WORK") > -1)	
+            if (types.indexOf("WORK") > -1
+                || card.faxNumber.length == 0)
                 card.faxNumber = values[0];
-            else if (card.faxNumber.length == 0)
-                card.faxNumber = values[0];
-            card.faxNumber = values[0];
             knownType = true;
         } else if (types.indexOf("CELL") > -1) {
             card.cellularNumber = values[0];
