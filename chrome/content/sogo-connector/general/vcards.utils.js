@@ -365,9 +365,10 @@ var _insertCardMethods = {
             for (var i = 0; i < preTypes.length; i++)
                 types[i] = preTypes[i].toUpperCase();
         if (types.indexOf("PREF") > -1 || types.indexOf("WORK") > -1) {
-            if (card.primaryEmail.length)
-                card.secondEmail = card.primaryEmail;
             card.primaryEmail = values[0];
+        }
+	else if (types.indexOf("HOME") > -1) {
+            card.secondEmail = values[0];
         }
         else {
             if (card.primaryEmail.length)
@@ -406,9 +407,9 @@ var _insertCardMethods = {
     },
     "x-mozilla-html": function(card, parameters, values) {
         if (values[0].toLowerCase() == "true")
-            card.preferMailFormat = true;
+            card.preferMailFormat = 2;
         else
-            card.preferMailFormat = false;
+            card.preferMailFormat = 1;
     },
     note: function(card, parameters, values) {
         card.notes = values.join(";");
