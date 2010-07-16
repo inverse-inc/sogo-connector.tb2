@@ -519,7 +519,7 @@ function InsertCardData(card, tag, parameters, values, outParameters) {
 }
 
 function sanitizeBase64(value) {
-         dump("oldValue:\n" + value + "\n");
+    // dump("oldValue:\n" + value + "\n");
     value = value.replace("\r", "", "g");
     value = value.replace("\n", "", "g");
     value = value.replace("\t", "", "g");
