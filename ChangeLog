@@ -1,3 +1,8 @@
+2010-07-16  Wolfgang Sourdeau  <wsourdeau@inverse.ca>
+
+	* imported and partially adapted code from
+	http://mf-sd.de/wp-content/plugins/download-monitor/download.php?id=sogo-connector-0.100-mf.xpi
+
 2010-07-01  Ludovic Marcotte  <lmarcotte@inverse.ca>
 
 	* chrome/content/sogo-connector/general/vcards.utils.js

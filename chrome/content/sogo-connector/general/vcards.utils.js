@@ -38,6 +38,14 @@ function jsInclude(files, target) {
 jsInclude(["chrome://inverse-library/content/uuid.js",
            "chrome://inverse-library/content/quoted-printable.js"]);
 
+if (isMoreColsInstalled()) {
+    try {
+        jsInclude(["chrome://inverse-library/content/photo.js"]);
+    }
+    catch(e) {
+    }
+}
+
 function escapedForCards(theString) {
     theString = theString.replace(/\\/g, "\\\\");
     theString = theString.replace(/,/g, "\\,");
@@ -130,8 +138,16 @@ function versitParse(versitString) {
                             tag = "";
                             currentChar++;
                         }
-                        else
+                        else {
+                            /* TEST */
+			    // skip to next valid line, egroupware fuckup? b64 encoded data might have
+			    // additional crlf at end.
+			    while (versitString[currentChar] == "\r" || versitString[currentChar] == "\n")
+    				currentChar++;
+    			    character = versitString[currentChar];
+
                             tag+=character;
+                        }
                     }
                     else
                         tag += character;
@@ -237,11 +253,14 @@ function CreateCardFromVCF(vcard, outParameters) {
     if (version[0] == "3")
         defaultCharset = "utf-8";
 
+    var photo = false;
     for (var i = 0; i < vcard.length; i++) {
         var tag = vcard[i]["tag"];
         var charset = defaultCharset;
         var encoding = null;
 
+        if (tag == "photo")
+            photo = true;
         var parameters = vcard[i]["parameters"];
         if (parameters) {
             for (var parameter in parameters) {
@@ -257,6 +276,10 @@ function CreateCardFromVCF(vcard, outParameters) {
         var values = decodedValues(vcard[i]["values"], charset, encoding);
         InsertCardData(card, tag, parameters, values, outParameters);
     }
+
+    // photo removed on serverside ?
+    if(isMoreColsInstalled() && !photo)
+	removeOldPhoto(getPhotoCode(card));
 
     return card;
 }
@@ -398,9 +421,39 @@ var _insertCardMethods = {
         card.jobTitle = values[0];
     },
     bday: function(card, parameters, values) {
-        card.birthYear = values[0];
-        card.birthMonth = values[1];
-        card.birthDay = values[2];
+        // card.birthYear = values[0];
+        // card.birthMonth = values[1];
+        // card.birthDay = values[2];
+
+        // TEST/
+	// deal w/ different formats.
+        if (values.length == 1) {
+            // remove time
+            var fullDate = values[0].split("T")[0];
+	    var bdayparts = "";
+	    if (fullDate.indexOf("-") > -1) {
+		// regular rfc2426 format
+		bdayparts = fullDate.split("-");
+	    }
+	    else if (fullDate.indexOf("/") > -1) {
+		bdayparts = fullDate.split("/");
+	    }
+	    if (bdayparts.length > 0) {
+		card.birthYear = bdayparts[0];
+		card.birthMonth = bdayparts[1];
+		card.birthDay = bdayparts[2];
+            }
+            else {
+    		card.birthYear = fullDate.substr(0, 4);
+    		card.birthMonth = fullDate.substr(4, 2);
+    		card.birthDay = fullDate.substr(6, 2);
+            }
+        }
+        else {
+    	    card.birthYear = values[0];
+    	    card.birthMonth = values[1];
+    	    card.birthDay = values[2];
+    	}
     },
     "x-aim": function(card, parameters, values) {
         card.aimScreenName = values[0];
@@ -413,6 +466,30 @@ var _insertCardMethods = {
     },
     note: function(card, parameters, values) {
         card.notes = values.join(";");
+    },
+    photo: function(card, parameters, values) {
+        // TEST
+        if (!isMoreColsInstalled())
+            return;
+
+        // urls are not handled
+        if (parameters["value"])
+            return;
+
+        var photoType = parameters["type"][0].toLowerCase();
+        var photoExt = "";
+        if (photoType == 'jpeg') {
+            photoExt = ".jpg";
+        }
+        else if (photoType == 'png') {
+            photoExt = ".png";
+        }
+        else if (photoType == 'gif') {
+            photoExt = ".gif";
+        }
+
+        if (photoExt != "")
+            setTempPhoto(values[0], photoExt, card);
     },
     custom1: function(card, parameters, values) {
         card.custom1 = values[0];
@@ -441,6 +518,18 @@ function InsertCardData(card, tag, parameters, values, outParameters) {
         outParameters[tag] = values.join(";");
 }
 
+function sanitizeBase64(value) {
+         dump("oldValue:\n" + value + "\n");
+    value = value.replace("\r", "", "g");
+    value = value.replace("\n", "", "g");
+    value = value.replace("\t", "", "g");
+    value = value.replace(" ", "", "g");
+
+    // dump("newValue:\n" + value + "\n");
+
+    return value;
+}
+
 function decodedValues(values, charset, encoding) {
     var newValues = [];
 
@@ -452,10 +541,22 @@ function decodedValues(values, charset, encoding) {
         if (encoding) {
             //  			dump("encoding: " + encoding + "\n");
             //  			dump("initial value: ^" + values[i] + "$\n");
-            if (encoding == "quoted-printable")
+            if (encoding == "quoted-printable") {
                 decodedValue = decoder.decode(values[i]);
-            else if (encoding == "base64")
-            decodedValue = window.atob(values[i]);
+            }
+            else if (encoding == "base64" || encoding == "b") {
+                var saneb64Value = sanitizeBase64(values[i]);
+                try {
+                    decodedValue = window.atob(saneb64Value);
+                }
+                catch(e) {
+                    dump("vcards.utils.js: failed to decoded value '" + i +
+                         "'\n" + e
+                         + "\n" + saneb64Value
+                         + "\nStack:\n\n" + e.stack);
+                    decodedValue = "";
+                }
+            }
             else {
                 dump("Unsupported encoding for vcard value: " + encoding);
                 decodedValue = values[i];
@@ -464,7 +565,8 @@ function decodedValues(values, charset, encoding) {
         }
         else
             decodedValue = values[i];
-        if (charset == "utf-8")
+        if (charset == "utf-8"
+            || (encoding && (encoding == "base64" || encoding == "b")))
             newValues.push(decodedValue);
         else {
             var converter = Components.classes["@mozilla.org/intl/utf8converterservice;1"]
@@ -570,10 +672,10 @@ function card2vcard(oldCard) {
         vCard += "CUSTOM4:"+ card.custom4 + "\r\n";
 
     if (card.notes != ""){
-        var cleanedNote = "NOTE:"+card.notes.replace(/\n/g, "\\" + "r\\" + "n");
+        var cleanedNote = "NOTE:" + card.notes.replace(/\n/g, "\\" + "r\\" + "n");
 
         if (cleanedNote.size <= lineMaxSize){
-            vcard += cleaneNote;
+            vCard += cleaneNote;
         }else{
             var lineMaxSize = 79;
             var size = lineMaxSize;
@@ -587,7 +689,34 @@ function card2vcard(oldCard) {
         }
     }
 
-    if ( card.aimScreenName != "")
+    // TEST
+    if (isMoreColsInstalled()) {
+    	var photoFile = existsPhotoForCard(card);
+    	if (photoFile) {
+    	    var photoBASE64 = convertPhotoFileBase64(photoFile);
+    	    var photoExt = photoFile.leafName.substring(photoFile.leafName.lastIndexOf(".")).toLowerCase();
+    	    if (photoExt == ".jpg") {
+    		photoExt = "JPEG";
+            }
+    	    else if (photoExt == ".png") {
+    	        photoExt = "PNG";
+            }
+    	    else if (photoExt == ".gif") {
+    	        photoExt = "GIF";
+            }
+
+            data = "PHOTO;ENCODING=b;TYPE=" + photoExt + ":" + photoBASE64;
+
+    	    for (var i = 1; true; i++) {
+    		data = data.substring(0, 70 * i) + "\n " + data.substring(70 * i);
+    	        if (data.substring(70 * i + 1).length < 70)
+    		    break;
+    	    }
+    	    vCard = vCard + data + "\r\n";
+    	}
+    }
+
+    if (card.aimScreenName != "")
         vCard += "X-AIM:" + card.aimScreenName + "\r\n";
 
     var fbUrl = card.getStringAttribute("calFBURL");

@@ -330,3 +330,16 @@ function dumpObject(object) {
     var dumper = new objectDumper();
     return dumper.dump(object);
 }
+
+function isExtensionInstalled (aExtensionID) {
+    var ExtManager = Components.classes["@mozilla.org/extensions/manager;1"]
+                               .getService(Components.interfaces.nsIExtensionManager);
+    var nsIUpdateItem = Components.interfaces.nsIUpdateItem;
+    var existingItem = ExtManager.getItemForID(aExtensionID);
+
+    return (existingItem && existingItem.installLocationKey && existingItem.installLocationKey.length != 0);
+}
+
+function isMoreColsInstalled() {
+    return isExtensionInstalled("{3e17310d-82e8-4a43-bd2f-7c3055bfe589}");
+}

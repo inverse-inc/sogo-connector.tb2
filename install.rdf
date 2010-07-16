@@ -24,6 +24,7 @@
     <em:contributor>Ralf Becker for eGroupware integration</em:contributor>
     <em:contributor>Regis Balzard (for the chocolate)</em:contributor>
     <em:contributor>Wilfried Goesgens</em:contributor>
+    <em:contributor>Marco Fabbricatore</em:contributor>
     <em:targetApplication RDF:resource="rdf:#$Iwquq2"/>
     <em:targetApplication RDF:resource="rdf:#$Nwquq2"/>
   </RDF:Description>

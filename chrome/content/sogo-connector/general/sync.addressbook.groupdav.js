@@ -682,7 +682,10 @@ GroupDavSynchronizer.prototype = {
                                 this.fillLocalCardHashes();
                                 this.fillLocalListHashes();
 
-                                var newCTag = prop["getctag"][0];
+                                // eGroupware does not support "getctag"?
+                                var newCTag = (prop["getctag"]
+                                               ? prop["getctag"][0]
+                                               : null);
                                 if (newCTag && newCTag == this.gCTag) {
                                     //                   dump("ctag matches or drop operation\n");
                                     this.processCards();
@@ -753,8 +756,12 @@ GroupDavSynchronizer.prototype = {
                         if (propstat["status"][0].indexOf("HTTP/1.1 200") == 0) {
                             var prop = propstat["prop"][0];
                             if (href != this.gURL) {
-                                var contType = prop["getcontenttype"][0];
-                                if (contType == "text/x-vcard"
+                                // eGroupware does not support "getcontenttype"?
+                                var contType = (prop["getcontenttype"]
+                                                ? prop["getcontenttype"][0]
+                                                : null);
+                                if (!contType
+                                    || contType == "text/x-vcard"
                                     || contType == "text/vcard"
                                     || contType == "text/x-vlist") {
                                     // 						dump(key + " is vcard\n");
