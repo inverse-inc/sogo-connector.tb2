@@ -550,7 +550,7 @@ function decodedValues(values, charset, encoding) {
                     decodedValue = window.atob(saneb64Value);
                 }
                 catch(e) {
-                    dump("vcards.utils.js: failed to decoded value '" + i +
+                    dump("vcards.utils.js: failed to decode value '" + i +
                          "'\n" + e
                          + "\n" + saneb64Value
                          + "\nStack:\n\n" + e.stack);
@@ -580,6 +580,21 @@ function decodedValues(values, charset, encoding) {
     return newValues;
 }
 
+function foldedLine(line) {
+    var linePart = line.substr(0, 75);
+    var newLine = linePart;
+    var pos = linePart.length;
+    var length = line.length - linePart.length;
+    while (length > 0) {
+        linePart = line.substr(pos, 74);
+        newLine += "\r\n " + linePart;
+        pos += linePart.length;
+        length -= linePart.length;
+    }
+
+    return newLine;
+}
+
 function card2vcard(oldCard) {
     var card = oldCard.QueryInterface(Components.interfaces.nsIAbMDBCard);
 
@@ -590,46 +605,52 @@ function card2vcard(oldCard) {
     var uid = card.getStringAttribute("groupDavKey");
     if (!uid || uid == "")
         uid = new UUID();
-    vCard += "UID:"+ uid + "\r\n";
+    vCard += foldedLine("UID:"+ uid) + "\r\n";
 
-    if (card.lastName != "" || card.firstName != "")
-        vCard += "N:"+ card.lastName + ";" + card.firstName + "\r\n";
+    if ((card.lastName + card.firstName) != "")
+        vCard += foldedLine("N:"+ card.lastName + ";" + card.firstName) + "\r\n";
 
     if (card.displayName != "")
-        vCard += "FN:" + card.displayName +"\r\n";
+        vCard += foldedLine("FN:" + card.displayName) + "\r\n";
 
-    if (! (card.company == "" && card.department == ""))
-        vCard += "ORG:"+card.company+";"+card.department+"\r\n";
+    if ((card.company + card.department) != "")
+        vCard += foldedLine("ORG:"+card.company+";"+card.department) +"\r\n";
 
     if (card.nickName != "")
-        vCard += "NICKNAME:"+card.nickName+"\r\n";
+        vCard += foldedLine("NICKNAME:"+card.nickName)+"\r\n";
 
-    data = "ADR;TYPE=work:;" + card.workAddress2 + ";"+card.workAddress+";"+card.workCity+";"+card.workState+";"+card                                  .workZipCode+";"+card.workCountry+"\r\n";
-    if (data != "DR;TYPE=WORK,POSTAL:;;;;;;\r\n")
+    data = foldedLine("ADR;TYPE=work:;" + card.workAddress2
+                      + ";" + card.workAddress + ";" + card.workCity
+                      + ";" + card.workState + ";" + card.workZipCode
+                      + ";" + card.workCountry) + "\r\n";
+    if (data != "ADR;TYPE=work:;;;;;;\r\n")
         vCard += data;
 
-    data = "ADR;TYPE=home:;" + card.homeAddress2 + ";"+card.homeAddress+";"+card.homeCity+";"+card.homeState+";"+card                                  .homeZipCode+";"+card.homeCountry+"\r\n";
-    if (data != "ADR;TYPE=HOME,POSTAL::;;;;;;\r\n")
+    data = foldedLine("ADR;TYPE=home:;" + card.homeAddress2
+                      + ";" + card.homeAddress + ";" + card.homeCity
+                      + ";" + card.homeState + ";" + card.homeZipCode
+                      + ";" + card.homeCountry) + "\r\n";
+    if (data != "ADR;TYPE=home:;;;;;;\r\n")
         vCard += data;
 
     if (card.workPhone != "")
-        vCard += "TEL;TYPE=work:"+ card.workPhone+"\r\n";
+        vCard += foldedLine("TEL;TYPE=work:" + card.workPhone) + "\r\n";
 
     if (card.homePhone != "")
-        vCard += "TEL;TYPE=home:"+ card.homePhone+"\r\n";
+        vCard += foldedLine("TEL;TYPE=home:" + card.homePhone) + "\r\n";
 
     if (card.cellularNumber != "")
-        vCard += "TEL;TYPE=cell:"+ card.cellularNumber+"\r\n";
+        vCard += foldedLine("TEL;TYPE=cell:" + card.cellularNumber) + "\r\n";
 
     if (card.faxNumber != "")
-        vCard += "TEL;TYPE=fax:"+ card.faxNumber+"\r\n";
+        vCard += foldedLine("TEL;TYPE=fax:" + card.faxNumber) + "\r\n";
 
-    if (card.pagerNumber)
-        vCard += "TEL;TYPE=pager:"+ card.pagerNumber + "\r\n";
+    if (card.pagerNumber != "")
+        vCard += foldedLine("TEL;TYPE=pager:" + card.pagerNumber) + "\r\n";
 
-    if (card.preferMailFormat != ""){
+    if (card.preferMailFormat != "") {
         var value = "";
-        switch (card.preferMailFormat){
+        switch (card.preferMailFormat) {
         case 0:
             break;
         case 2:
@@ -642,51 +663,41 @@ function card2vcard(oldCard) {
         vCard += "X-MOZILLA-HTML:" + value + "\r\n";
     }
     if (card.primaryEmail != "")
-        vCard += "EMAIL;TYPE=work:"+ card.primaryEmail+"\r\n";
+        vCard += foldedLine("EMAIL;TYPE=work:" + card.primaryEmail) + "\r\n";
 
     if (card.secondEmail != "")
-        vCard += "EMAIL;TYPE=home:"+ card.secondEmail+"\r\n";
+        vCard += foldedLine("EMAIL;TYPE=home:" + card.secondEmail) + "\r\n";
 
     if (card.webPage2 != "")
-        vCard += "URL;TYPE=home:"+ card.webPage2+"\r\n";
+        vCard += foldedLine("URL;TYPE=home:" + card.webPage2) + "\r\n";
 
     if (card.jobTitle != "")
-        vCard += "TITLE:"+ card.jobTitle+"\r\n";
+        vCard += foldedLine("TITLE:" + card.jobTitle) + "\r\n";
 
     if (card.webPage1 != "")
-        vCard += "URL;TYPE=work:"+ card.webPage1+"\r\n";
+        vCard += foldedLine("URL;TYPE=work:" + card.webPage1) + "\r\n";
 
     if (card.birthYear != "" && card.birthMonth != "" && card.birthDay !="")
-        vCard += "BDAY:"+card.birthYear+"-"+card.birthMonth+"-"+card.birthDay+"\r\n";
+        vCard += foldedLine("BDAY:" + card.birthYear
+                            + "-" + card.birthMonth
+                            + "-" + card.birthDay) + "\r\n";
 
     if (card.custom1 != "")
-        vCard += "CUSTOM1:"+ card.custom1 + "\r\n";
+        vCard += foldedLine("CUSTOM1:" + card.custom1) + "\r\n";
 
     if (card.custom2 != "")
-        vCard += "CUSTOM2:"+ card.custom2 + "\r\n";
+        vCard += foldedLine("CUSTOM2:" + card.custom2) + "\r\n";
 
     if (card.custom3 != "")
-        vCard += "CUSTOM3:"+ card.custom3 + "\r\n";
+        vCard += foldedLine("CUSTOM3:" + card.custom3) + "\r\n";
 
     if (card.custom4 != "")
-        vCard += "CUSTOM4:"+ card.custom4 + "\r\n";
+        vCard += foldedLine("CUSTOM4:" + card.custom4) + "\r\n";
 
-    if (card.notes != ""){
-        var cleanedNote = "NOTE:" + card.notes.replace(/\n/g, "\\" + "r\\" + "n");
-
-        if (cleanedNote.size <= lineMaxSize){
-            vCard += cleaneNote;
-        }else{
-            var lineMaxSize = 79;
-            var size = lineMaxSize;
-            var pos = 0;
-            while (pos < cleanedNote.length){
-                size =(pos + lineMaxSize < cleanedNote.length) ? lineMaxSize : (cleanedNote.length - pos);
-                vCard += cleanedNote.substr(pos, size) + "\r\n ";
-                pos += lineMaxSize;
-            }
-            vCard = vCard.substr(0, vCard.length-1);//removing the unecessary white space
-        }
+    if (card.notes != "") {
+        var cleanedNote = foldedLine("NOTE:"
+                                     + card.notes.replace(/\n/g, "\\" + "r\\" + "n")) + "\r\n";
+        vCard += cleanedNote;
     }
 
     // TEST
@@ -705,31 +716,24 @@ function card2vcard(oldCard) {
     	        photoExt = "GIF";
             }
 
-            data = "PHOTO;ENCODING=b;TYPE=" + photoExt + ":" + photoBASE64;
-
-    	    for (var i = 1; true; i++) {
-    		data = data.substring(0, 70 * i) + "\n " + data.substring(70 * i);
-    	        if (data.substring(70 * i + 1).length < 70)
-    		    break;
-    	    }
-    	    vCard = vCard + data + "\r\n";
+            vCard += foldedLine("PHOTO;ENCODING=b;TYPE=" + photoExt
+                                + ":" + photoBASE64) + "\r\n";
     	}
     }
 
     if (card.aimScreenName != "")
-        vCard += "X-AIM:" + card.aimScreenName + "\r\n";
+        vCard += foldedLine("X-AIM:" + card.aimScreenName) + "\r\n";
 
     var fbUrl = card.getStringAttribute("calFBURL");
     if (fbUrl && fbUrl.length > 0) {
-        data = "FBURL:" + fbUrl;
-        vCard = vCard + data + "\r\n";
+        vCard += foldedLine("FBURL:" + fbUrl) + "\r\n";
     }
 
     var groupDavVcardCompatibilityField = card.getStringAttribute("groupDavVcardCompatibility");
     if (groupDavVcardCompatibilityField) {
-        vCard += groupDavVcardCompatibilityField + "\r\n";
+        vCard += foldedLine(groupDavVcardCompatibilityField) + "\r\n";
     }
-    vCard += "END:VCARD\r\n\r\n";
+    vCard += "END:VCARD";
 
     return vCard;
 }

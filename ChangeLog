@@ -1,3 +1,15 @@
+2010-07-18  Wolfgang Sourdeau  <wsourdeau@inverse.ca>
+
+	* chrome/content/sogo-connector/general/vcards.utils.js:
+	(foldedLine): new function that folds the line passed as parameter
+	in a standard versit format rfc2426.txt.
+	(card2vcard): make use of "foldedLine" for all lines that are
+	potentially longer than 75 characters, including the "PHOTO"
+	field.
+	Fixed a minor bug where empty address fields would still be
+	rendered because the case of their "TYPE" parameter would not
+	match the one from the template.
+
 2010-07-16  Wolfgang Sourdeau  <wsourdeau@inverse.ca>
 
 	* imported and partially adapted code from
