@@ -1,10 +1,41 @@
 /*
      copied from MoreFunctionsForAddressBook extension (https://nic-nac-project.org/~kaosmos/index-en.html)
-*/     
+*/
 
 var MFphotoStrBundle = Components.classes["@mozilla.org/intl/stringbundle;1"]
                 .getService(Components.interfaces.nsIStringBundleService);
 var MFphotoBundle = MFphotoStrBundle.createBundle("chrome://morecols/locale/morecols.properties");
+
+function base64encode(str) {
+    var _base64_keyStr = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+    var output = "";
+    var chr1, chr2, chr3, enc1, enc2, enc3, enc4;
+    var i = 0;
+
+    var input = str;
+    while (i < input.length) {
+        chr1 = input.charCodeAt(i++);
+        chr2 = input.charCodeAt(i++);
+        chr3 = input.charCodeAt(i++);
+
+        enc1 = chr1 >> 2;
+        enc2 = ((chr1 & 3) << 4) | (chr2 >> 4);
+        enc3 = ((chr2 & 15) << 2) | (chr3 >> 6);
+        enc4 = chr3 & 63;
+
+        if (isNaN(chr2)) {
+            enc3 = enc4 = 64;
+        } else if (isNaN(chr3)) {
+            enc4 = 64;
+        }
+
+        output = output +
+            _base64_keyStr.charAt(enc1) + _base64_keyStr.charAt(enc2) +
+            _base64_keyStr.charAt(enc3) + _base64_keyStr.charAt(enc4);
+    }
+
+    return output;
+}
 
 function getNoImgLabel() {
 	return MFphotoBundle.GetStringFromName("noimg");
@@ -15,7 +46,7 @@ function getPhotoCode(card) {
 	if (card || document.location.href == "chrome://messenger/content/addressbook/addressbook.xul") {
 		if (! card)
 			card = GetSelectedCard();
-		if (card.primaryEmail != "") 
+		if (card.primaryEmail != "")
 			var val = card.primaryEmail;
 		else if (card.displayName != "")
 			var val = card.displayName;
@@ -23,22 +54,27 @@ function getPhotoCode(card) {
 			return false;
 		}
 	else {
-		// This is used when we have a new card, that has not a card object yet
-		if (document.getElementById("PrimaryEmail").value != "") 
-			var val = document.getElementById("PrimaryEmail").value;
-		else if (document.getElementById("DisplayName").value != "")
-			var val = document.getElementById("DisplayName").value;
-		else
-			return false;
+            var primaryEmailField = document.getElementById("PrimaryEmail");
+            var displayNameField = document.getElementById("DisplayName");
+            var val;
+	    // This is used when we have a new card, that has not a card object yet
+	    if (primaryEmailField && primaryEmailField.value != "") {
+		val = document.getElementById("PrimaryEmail").value;
+            }
+	    else if (displayNameField && displayNameField.value != "") {
+                val = document.getElementById("DisplayName").value;
+            }
+	    else
+		return false;
 	}
 	// Double encoding in filename: first is escaped, then is converted in base64
 	// This to avoid non ascii character in filename
-	var val_encoded = btoa(escape(val));
+	var val_encoded = base64encode(escape(val));
 	val_encoded = val_encoded.replace(/=/g, "");
 	return val_encoded;
 }
 
-function addPhoto(photoFile, photocode) { 
+function addPhoto(photoFile, photocode) {
 	if (! photoFile)
 		photoFile = existsPhotoForCard();
 	var image = document.getElementById("pic");
@@ -84,7 +120,7 @@ function formatImageSize(file) {
 	}
 	return size+lab;
 }
-	
+
 
 function MyImageLoaded() {
 	var moreColsPrefs = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefBranch);
@@ -138,7 +174,7 @@ function setPhoto(file,card) {
 	if (document.getElementById("PrimaryEmail").value == "" && document.getElementById("DisplayName").value == "") {
 		alert(MFphotoBundle.GetStringFromName("nonameforpic"));
 		return;
-	}		
+	}
 	var noPhoto = true;
 	if (! file)
 		file = getFileFromFilePicker("Set Photo", "Open","all");
@@ -156,7 +192,7 @@ function removeUriFromImgCache(uri) {
 		// Remove the image URL from image cache so it loads fresh
 		//  (if we don't do this, loads after the first will always use image cache
 		//   and we won't see image edit changes or be able to get actual width and height)
-    
+
 		var IOService = Components.classes["@mozilla.org/network/io-service;1"].getService(Components.interfaces.nsIIOService);
 		var nsuri = IOService.newURI(uri, null, null);
 		var imgCacheService = Components.classes["@mozilla.org/image/cache;1"].getService();
@@ -181,7 +217,7 @@ function existsPhotoForCard(card) {
 	for (var i=0;i<extArray.length;i++) {
 		var photofileclone = photofile.clone();
 		photofileclone.append(photocode+extArray[i]);
-		if (photofileclone.exists()) 
+		if (photofileclone.exists())
 			return photofileclone;
 	}
 	return false;
@@ -209,7 +245,7 @@ function correctPhotoSrc() {
 		var extNew = file.leafName.substring(file.leafName.lastIndexOf("."));
 		var newCode = getPhotoCode(null);
 		var newName = newCode + (extNew.toLowerCase());
-		if (oldName == newName) 
+		if (oldName == newName)
 			return;
 		var photoDir = Components.classes["@mozilla.org/file/directory_service;1"]
 		.getService(Components.interfaces.nsIProperties)
@@ -228,7 +264,7 @@ function refreshMainWindowPanel() {
 	if (win)
 		win.document.getElementById("abResultsTree").view.selectionChanged();
 }
-	
+
 function convertPhotoFileBase64(file) {
 	var istream = Components.classes["@mozilla.org/network/file-input-stream;1"]
                         .createInstance(Components.interfaces.nsIFileInputStream);
@@ -237,7 +273,7 @@ function convertPhotoFileBase64(file) {
                         .createInstance(Components.interfaces.nsIBinaryInputStream);
 	bstream.setInputStream(istream);
 	var bytes = bstream.readBytes(bstream.available());
-	var b64 = btoa(bytes);
+	var b64 = base64encode(bytes);
 	return b64;
 }
 

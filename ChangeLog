@@ -1,3 +1,13 @@
+2010-07-19  Wolfgang Sourdeau  <wsourdeau@inverse.ca>
+
+	* chrome/content/inverse-library/photo.js: (base64encode): copied
+	function from the SOGo code because, unlike what's documented, the
+	"btoa" method/function is NOT available from within XPCOM
+	components.
+	(getPhotoCode): ensure that the "PrimaryEmail" and "DisplayName"
+	element are accessible prior attempting to read their "value"
+	attribute.
+
 2010-07-18  Wolfgang Sourdeau  <wsourdeau@inverse.ca>
 
 	* chrome/content/sogo-connector/general/vcards.utils.js:
